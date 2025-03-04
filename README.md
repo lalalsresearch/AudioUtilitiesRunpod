@@ -27,5 +27,15 @@ docker run lalals-audio-downloader-test
 
 # Audio Downloader Runpod 
 docker build --platform "linux/amd64" -f YoutubeDownloader/Dockerfile -t lalals-audio-downloader .
-docker tag lalals-audio-downloader:latest sakarlalals/lalals-audio-downloader:0.4
-docker push sakarlalals/lalals-audio-downloader:0.4
+docker tag lalals-audio-downloader:latest sakarlalals/lalals-audio-downloader:0.6
+docker push sakarlalals/lalals-audio-downloader:0.6
+
+## Image Generator Flux 
+docker build -f ImageGenerator/Dockerfile -t image-generator-runpod .
+docker tag image-generator-runpod:latest sakarlalals/image-generator-runpod:0.1
+docker push sakarlalals/image-generator-runpod:0.1
+
+## Text To Speech Zonos
+docker build -f TextToSpeech/Dockerfile -t text-to-speech-zonos .
+docker tag text-to-speech-zonos sakarlalals/text-to-speech-zonos:latest
+docker push sakarlalals/text-to-speech-zonos:latest

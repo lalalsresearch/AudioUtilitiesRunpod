@@ -175,3 +175,5 @@ cython_debug/
 *.wav
 *.flac
 *.webm
+./zonos/*
+zonos/

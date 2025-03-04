@@ -1,0 +1,10 @@
+transformers
+boto3
+requests==2.31.0
+accelerate
+hf_transfer
+protobuf
+soundfile
+sentencepiece
+pydub
+runpod

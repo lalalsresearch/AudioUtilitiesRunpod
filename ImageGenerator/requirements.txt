@@ -1,0 +1,10 @@
+transformers
+boto3
+requests==2.31.0
+accelerate
+torch
+diffusers
+protobuf
+sentencepiece
+runpod 
+hf_transfer

@@ -50,7 +50,9 @@ class RedisHelper:
                         value
                     )  # Parse the JSON string into a Python object
                 return None
-
+            elif data_type == "string":
+                value = self.redis.get(key)
+                return value.decode("utf-8") if value else None
             elif data_type == "list":
                 byte_list = self.redis.lrange(key, 0, -1)  # Fetch the entire list
                 return [item.decode("utf-8") for item in byte_list]

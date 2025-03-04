@@ -31,9 +31,11 @@ class AudioDownloaderPipeline():
         try:
             self.logger = get_logger("AudioDownloaderPipeline")
             self.s3Helper = S3Helper(aws_access_key, aws_secret_key, aws_region)
+            self.redisHelper = RedisHelper()
             self.vdaDownloader = VDADownloader()
             self.ytdlpDownloader = YTDLPDownloader()
             self.youtubemp36 = YoutubeMp36()
+            self.youtube_downloader = self.youtubemp36 if self.redisHelper.fetch_key("youtube_downloader", "string") == "mp36" else self.vdaDownloader
         except Exception as e:
             self.logger.exception(e)
             raise 
@@ -87,7 +89,7 @@ class AudioDownloaderPipeline():
         try:
             if validate_youtube_audio_url(url):
                 ## use vdaDownloader for youtube links 
-                self.logger.debug(f"Youtube link detected, using ytmp36...")
+                self.logger.debug(f"Youtube link detected, using {self.youtube_downloader}")
                 title, download_path, audio_length = self.youtubemp36.run(url)
             else:
                 self.logger.debug(f"Non youtube link detected, using ytdlp...")

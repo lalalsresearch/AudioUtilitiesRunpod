@@ -6,3 +6,4 @@ audio_separator_weights/*
 output/*
 .git
 *.pyc
+zonos/*

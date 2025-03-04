@@ -82,6 +82,8 @@ class YoutubeMp36():
 
     def run(self, url, max_length = 8):
         try:
+            self.logger.debug(f"Downloading file from: {url}")
+            self.logger.debug(f"Checking audio length ...")
             audio_length = self._get_audio_length(url)
  
             if audio_length > max_length * 60:
@@ -89,8 +91,12 @@ class YoutubeMp36():
             video_id = self.youtube_api.extract_video_id(url)
             if not video_id:
                 raise Exception("Error fetching file info")
+            
+            self.logger.debug(f"Video ID : {video_id}")
+            self.logger.debug(f"Fetching download link")
             download_link, title = self.get_video_link(video_id)
 
+            self.logger.debug(f"Download link : {download_link} \n Downloading file")
             if not download_link or not title:
                 raise Exception("The file cannot be downloaded")
             
