@@ -18,7 +18,7 @@ aws_region = os.getenv("AWS_REGION", "us-east-1")
 
 
 class TextToSpeech:
-    def __init__(self, model_choice : str = "Zyphra/Zonos-v0.1-hybrid"):
+    def __init__(self, model_choice : str = "Zyphra/Zonos-v0.1-transformer"):
         self.logger = get_logger("TextToSpeechHandler")
         self.s3Helper = S3Helper(aws_access_key, aws_secret_key, aws_region)
         self.zonos = ZonosInference(model_choice)
