@@ -37,5 +37,5 @@ docker push sakarlalals/image-generator-runpod:0.1
 
 ## Text To Speech Zonos
 docker build -f TextToSpeech/Dockerfile -t text-to-speech-zonos .
-docker tag text-to-speech-zonos sakarlalals/text-to-speech-zonos:latest
-docker push sakarlalals/text-to-speech-zonos:latest
+docker tag text-to-speech-zonos sakarlalals/text-to-speech-zonos:0.1
+docker push sakarlalals/text-to-speech-zonos:0.1

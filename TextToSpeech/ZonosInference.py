@@ -13,9 +13,13 @@ from typing import Optional, Tuple, Callable
 # from beam import env
 
 # if env.is_remote():
-from zonos.model import Zonos, DEFAULT_BACKBONE_CLS as ZonosBackbone
+from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict, supported_language_codes
 from zonos.utils import DEFAULT_DEVICE as device
+
+from pydub import AudioSegment
+import re
+import soundfile as sf
 
 
 import numpy as np 
@@ -28,6 +32,7 @@ class ZonosInference:
         self.speaker_embedding = None
         self.speaker_audio_path = None
         self.load_model(model_choice)
+        self.split_text_into_sentences = os.getenv("SPLIT_TEXT_INTO_SENTENCES", "true").strip().lower() == "true"
 
     def load_model(self, model_choice: str):
         """Load or switch between different Zonos models"""
@@ -42,6 +47,28 @@ class ZonosInference:
             self.model.requires_grad_(False).eval()
             self.model_type = model_choice
             self.logger.debug(f"{model_choice} model loaded successfully!")
+
+    def split_text(self, text: str) -> list:
+        """Split text into multiple sentences, ensuring no segment exceeds 40 words."""
+        sentences = re.split(r'(?<=[.!?])\s+', text)  # Split by sentence-ending punctuation
+        chunks = []
+        current_chunk = []
+        word_count = 0
+        
+        for sentence in sentences:
+            words = sentence.split()
+            if word_count + len(words) > 40:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = words
+                word_count = len(words)
+            else:
+                current_chunk.extend(words)
+                word_count += len(words)
+        
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+        
+        return chunks
 
     def run(
         self,
@@ -88,7 +115,6 @@ class ZonosInference:
         # Seed handling
         if randomize_seed:
             seed = torch.randint(0, 2**32 - 1, (1,)).item()
-        torch.manual_seed(seed)
 
         # Speaker embedding handling
         if speaker_audio_path and "speaker" not in unconditional_keys:
@@ -111,54 +137,71 @@ class ZonosInference:
         emotion_tensor = torch.tensor(emotion, device=device)
         vq_tensor = torch.tensor([vq_score] * 8, device=device).unsqueeze(0)
 
-        cond_dict = make_cond_dict(
-            text=text,
-            language=language,
-            speaker=self.speaker_embedding,
-            emotion=emotion_tensor,
-            vqscore_8=vq_tensor,
-            fmax=fmax,
-            pitch_std=pitch_std,
-            speaking_rate=speaking_rate,
-            dnsmos_ovrl=dnsmos_ovrl,
-            speaker_noised=speaker_noised,
-            device=device,
-            unconditional_keys=unconditional_keys,
-        )
-        conditioning = self.model.prepare_conditioning(cond_dict)
-
-        # Generation callback
-        def _progress_wrapper(frame: torch.Tensor, step: int, total_steps: int) -> bool:
-            if progress_callback:
-                progress_callback(step, total_steps)
-            return True
-
-        # Generate codes
-        codes = self.model.generate(
-            prefix_conditioning=conditioning,
-            audio_prefix_codes=audio_prefix_codes,
-            max_new_tokens=max_new_tokens,
-            cfg_scale=cfg_scale,
-            batch_size=1,
-            sampling_params={
-                "top_p": top_p,
-                "top_k": top_k,
-                "min_p": min_p,
-                "linear": linear,
-                "conf": confidence,
-                "quad": quadratic
-            },
-            callback=_progress_wrapper,
-        )
-
-        # Decode to audio
-        wav_out = self.model.autoencoder.decode(codes).cpu().detach()
-        sr_out = self.model.autoencoder.sampling_rate
+        if self.split_text_into_sentences:
+            text_segments = self.split_text(text)
+        else:
+            text_segments = [text]
         
-        if wav_out.dim() == 2 and wav_out.size(0) > 1:
-            wav_out = wav_out[0:1, :]
+        combined_audio = AudioSegment.silent(duration=10)
+        chunk_filepath = "/tmp/chunk.wav"
 
-        return sr_out, wav_out.squeeze().numpy()
+        for segment in text_segments:
+            torch.manual_seed(seed)
+            cond_dict = make_cond_dict(
+                text=segment,
+                language=language,
+                speaker=self.speaker_embedding,
+                emotion=emotion_tensor,
+                vqscore_8=vq_tensor,
+                fmax=fmax,
+                pitch_std=pitch_std,
+                speaking_rate=speaking_rate,
+                dnsmos_ovrl=dnsmos_ovrl,
+                speaker_noised=speaker_noised,
+                device=device,
+                unconditional_keys=unconditional_keys,
+            )
+            conditioning = self.model.prepare_conditioning(cond_dict)
+
+            # Generation callback
+            def _progress_wrapper(frame: torch.Tensor, step: int, total_steps: int) -> bool:
+                if progress_callback:
+                    progress_callback(step, total_steps)
+                return True
+
+            # Generate codes
+            codes = self.model.generate(
+                prefix_conditioning=conditioning,
+                audio_prefix_codes=audio_prefix_codes,
+                max_new_tokens=max_new_tokens,
+                cfg_scale=cfg_scale,
+                batch_size=1,
+                sampling_params={
+                    "top_p": top_p,
+                    "top_k": top_k,
+                    "min_p": min_p,
+                    "linear": linear,
+                    "conf": confidence,
+                    "quad": quadratic
+                },
+                callback=_progress_wrapper,
+            )
+
+            # Decode to audio
+            wav_out = self.model.autoencoder.decode(codes).cpu().detach()
+            sr_out = self.model.autoencoder.sampling_rate
+            
+            if wav_out.dim() == 2 and wav_out.size(0) > 1:
+                wav_out = wav_out[0:1, :]
+            wav_out = wav_out.squeeze().numpy()
+            sf.write(chunk_filepath, wav_out, samplerate=sr_out)
+            audio_segment = AudioSegment.from_wav(chunk_filepath)
+            combined_audio += audio_segment + AudioSegment.silent(duration=500)
+        if os.path.isfile(chunk_filepath):
+            os.remove(chunk_filepath)
+        final_audio = combined_audio.get_array_of_samples()
+        combined_audio.export("/tmp/combined_audio.wav", format="wav")
+        return sr_out, final_audio, "/tmp/combined_audio.wav"
 
 # Example usage
 if __name__ == "__main__":

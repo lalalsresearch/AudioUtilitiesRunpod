@@ -10,6 +10,7 @@ from typing import Optional, Tuple, Callable
 import soundfile as sf
 from pydub import AudioSegment
 from ZonosInference import ZonosInference
+import shutil
 
 aws_access_key = os.getenv("AWS_ACCESS_KEY")
 aws_secret_key = os.getenv("AWS_SECRET_KEY")
@@ -56,6 +57,10 @@ class TextToSpeech:
     def _get_local_filepath_speaker_audio(self, speaker_audio_path : str):
         audio_path = speaker_audio_path.split("/")[-1]
         return f"/tmp/{audio_path}"
+
+    def _delete_file_if_exists(self, file_path : str):
+        if os.path.isfile(file_path):
+            os.remove(file_path)
     
     def _download_and_validate_speaker_audio_path(self, speaker_audio_path : str, speaker_audio_path_local):
         try:
@@ -124,13 +129,18 @@ class TextToSpeech:
                 prefix_audio_path_local = self._download_and_validate_prefix_audio_path(prefix_audio_path, prefix_audio_path_local)
 
 
-            sr, audio = self.zonos.run(text, language, speaker_audio_path_local, prefix_audio_path_local, 
+            sr, audio, final_audio_path = self.zonos.run(text, language, speaker_audio_path_local, prefix_audio_path_local, 
                                        emotion, vq_score, fmax, pitch_std, speaking_rate, dnsmos_ovrl, speaker_noised, 
                                        cfg_scale, top_p, top_k, min_p, linear, confidence, quadratic, seed, randomize_seed, 
                                        unconditional_keys, max_new_tokens, progress_callback)
             
             output_filepath = self._get_output_filename(task_id)
-            self._save_tts_output(audio, sr, output_filepath)
+            if final_audio_path and os.path.exists(final_audio_path):
+                self.logger.info(f"Combined file exists, using that!!")
+                shutil.copy(final_audio_path, output_filepath)
+                self._delete_file_if_exists(final_audio_path)
+            else:
+                self._save_tts_output(audio, sr, output_filepath)
             output_filepath_mp3 = self._convert_to_mp3(output_filepath)
             s3_key = self._get_output_key_s3(task_id, format = "mp3")
             s3_key_wav = self._get_output_key_s3(task_id, format = "wav")
