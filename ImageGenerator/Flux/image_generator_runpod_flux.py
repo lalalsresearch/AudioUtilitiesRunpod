@@ -1,12 +1,13 @@
 import os 
 import sys 
 sys.path.append(os.path.basename(""))
+sys.path.append(os.path.basename("../../"))
 
 import runpod 
 from utils.s3Utils import S3Helper
 from utils.response_utils import success, error
 from utils.logger import get_logger
-from image_generator import ImageGenerator
+from ImageGenerator.Flux.image_generator_flux import ImageGenerator
 
 
 class ImageGeneratorRunpod():

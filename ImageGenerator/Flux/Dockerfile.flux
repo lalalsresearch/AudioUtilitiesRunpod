@@ -27,8 +27,8 @@ FROM dependencies AS final
 WORKDIR /app
 
 # Copy only the application code (avoiding unnecessary rebuilds)
-COPY ImageGenerator/image_generator_runpod.py image_generator_runpod.py
-COPY ImageGenerator/image_generator.py image_generator.py
+COPY ImageGenerator/image_generator_runpod_flux.py image_generator_runpod.py
+COPY ImageGenerator/image_generator_flux.py image_generator_flux.py
 COPY utils/ utils/
 
 CMD ["python3", "image_generator_runpod.py"]

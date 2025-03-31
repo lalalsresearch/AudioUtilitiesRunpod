@@ -31,11 +31,17 @@ docker tag lalals-audio-downloader:latest sakarlalals/lalals-audio-downloader:0.
 docker push sakarlalals/lalals-audio-downloader:0.6
 
 ## Image Generator Flux 
-docker build -f ImageGenerator/Dockerfile -t image-generator-runpod .
+docker build -f ImageGenerator/Flux/Dockerfile -t image-generator-runpod .
 docker tag image-generator-runpod:latest sakarlalals/image-generator-runpod:0.1
 docker push sakarlalals/image-generator-runpod:0.1
+
+## Image Generator Sana 
+docker build -f ImageGenerator/SanaSprint/Dockerfile --platform linux/amd64 -t image-generator-sana-sprint .
+docker tag image-generator-sana-sprint:latest sakarlalals/image-generator-sana-sprint:latest 
+docker push sakarlalals/image-generator-sana-sprint:latest
 
 ## Text To Speech Zonos
 docker build -f TextToSpeech/Dockerfile -t text-to-speech-zonos .
 docker tag text-to-speech-zonos sakarlalals/text-to-speech-zonos:0.1
 docker push sakarlalals/text-to-speech-zonos:0.1
+

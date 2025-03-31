@@ -3,7 +3,7 @@ import os
 import sys 
 sys.path.append(os.path.basename(''))
 
-from ImageGenerator.image_generator import ImageGenerator
+from ImageGenerator.image_generator_flux import ImageGenerator
 @function(
     retries=0,
     cpu = 12, 
